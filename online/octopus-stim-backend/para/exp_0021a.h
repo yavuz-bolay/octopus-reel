@@ -27,7 +27,97 @@ Octopus-ReEL - Realtime Encephalography Laboratory Network
     counter0: Counter for single trial
     -- squareburst of 400ms stim duration
 
-    -- multiple adapter support added. */
+    -- multiple adapter support added. 
+    .. \_para\_0021a:
+
+# para\_0021a Kernel Module Documentation
+
+## Overview
+
+`para_0021a` is a real-time auditory stimulation kernel module used within the Octopus-ReEL system. It implements an "Adapter–Probe" auditory paradigm with flexible lateralization (left, right, center) and supports matched vs. unmatched stimulus sequences. The module supports both continuous and discrete adapter types and is designed to provide precise timing using kernel-level counters and DAC control.
+
+## Paradigm Features
+
+* **Type:** Adapter-Probe Clicktrain Paradigm
+* **Modes:**
+
+  * Matched vs. Unmatched
+  * Ipsilateral vs. Contralateral
+* **Adapter types:** Continuous and Discrete
+* **Timing resolution:** Sub-millisecond via AUDIO\_RATE scaling
+
+## Stimulus Definitions
+
+* **Click period:** 10 ms
+* **Click duration (hi\_period):** 500 µs
+* **Adapter duration (continuous):** \~750 ms to 850 ms
+* **Adapter duration (discrete):** 800 ms
+* **Probe duration:** 50 ms
+* **SOA (Stimulus Onset Asynchrony):** 4 s
+* **IAI (Inter-adapter Interval):** 200 ms
+
+## Trigger Identifiers
+
+* `PARA_0021A_L_L600`: L adapter → L probe (600 µs ITD)
+* `PARA_0021A_L_L200`: L adapter → L probe (200 µs ITD)
+* `PARA_0021A_L_C`: L adapter → Center probe
+* `PARA_0021A_L_R200`: L adapter → R probe (200 µs ITD)
+* `PARA_0021A_L_R600`: L adapter → R probe (600 µs ITD)
+* `PARA_0021A_R_L600`: R adapter → L probe (600 µs ITD)
+* `PARA_0021A_R_L200`: R adapter → L probe (200 µs ITD)
+* `PARA_0021A_R_C`: R adapter → Center probe
+* `PARA_0021A_R_R200`: R adapter → R probe (200 µs ITD)
+* `PARA_0021A_R_R600`: R adapter → R probe (600 µs ITD)
+* `PARA_0021A_C_C`: Center adapter → Center probe
+
+## Main Functions
+
+* `para_0021a_init`: Initializes timing parameters based on compile-time flags (e.g., continuous vs discrete).
+* `para_0021a_start`: Starts counters and activates audio/trigger mechanisms.
+* `para_0021a_stop`: Deactivates all audio and lights.
+* `para_0021a_pause`: Temporarily disables stimulus output.
+* `para_0021a_resume`: Resumes audio with reset counters.
+* `para_0021a`: Core loop executed every kernel tick; handles:
+
+  * Pattern decoding (characters 'A'-'L')
+  * Stimulus delivery timing and DAC control
+  * Trigger emission
+  * Region marking (lead/center/lag) for adapter and probe
+
+## Timing Logic
+
+The main counter `counter0` advances every sample, and stimulus events are scheduled relative to `para_0021a_stim_instant` and `para_0021a_ap_offset`. Regions (center, lead, lag) are evaluated to activate appropriate DAC channels with proper ITDs.
+
+## Randomization
+
+When the `.` character appears in the pattern stream, a randomized duration (0–100 ms) is added to the adapter duration to introduce jitter in the ISI.
+
+## DAC Output Mapping
+
+* `dac_0` and `dac_1` are set to `AMP_OPPCHN` during the "hi" phase of click cycles within valid regions.
+* Channel mapping varies with stimulus lateralization:
+
+  * Center: both channels
+  * Left: `dac_0` active
+  * Right: `dac_1` active
+
+## Loop Control
+
+If `para_0021a_experiment_loop == 0`, the stimulus sequence stops after one iteration. Otherwise, the pattern buffer rolls back to index 0.
+
+## Logging
+
+Real-time events and values are printed using `rt_printk` for debugging and visualization (e.g., plotting histograms of random ISI values).
+
+## Use Case
+
+This module is designed for neuroscience experiments involving auditory spatial perception, adaptation effects, and timing sensitivity in EEG or electrophysiological paradigms.
+
+## License
+
+GNU General Public License v3 or later. Copyright (C) 2007–2025 Barkin Ilhan.
+
+    */
 
 #define PARA_0021A_CONT_ADAPT
 
