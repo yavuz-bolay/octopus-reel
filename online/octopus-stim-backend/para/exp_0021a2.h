@@ -27,7 +27,80 @@ Octopus-ReEL - Realtime Encephalography Laboratory Network
     counter0: Counter for single trial
     -- squareburst of 400ms stim duration
 
-    -- multiple adapter support added. */
+    -- multiple adapter support added. 
+    .. \_para\_0021a2:
+
+# para\_0021a2 Kernel Module Documentation
+
+## Overview
+
+`para_0021a2` is a simplified, deterministic auditory stimulation kernel module from the Octopus-ReEL system. It implements a fixed-timing Adapter–Probe clicktrain paradigm with continuous adapters and no timing randomization. This module is optimized for experiments requiring constant temporal precision across trials.
+
+## Summary of Differences
+
+Compared to earlier variants (`para_0021a`, `para_0021a1`):
+
+* **No temporal jitter**: All durations are fixed.
+* **Adapter duration**: Exactly 800 ms (not 850 ms or randomized).
+* **IAI and AP offset**: Constant across trials.
+
+## Paradigm Details
+
+* **Type**: Adapter-Probe clicktrain (continuous adapter)
+* **Modes supported**:
+
+  * Matched vs. Unmatched
+  * Ipsilateral vs. Contralateral
+* **Output method**: DAC-based click stimulation
+* **Channel assignment**:
+
+  * `dac_0`: Left
+  * `dac_1`: Right
+
+## Timing Parameters
+
+* **Click period**: 10 ms
+* **Click high duration**: 500 µs
+* **Adapter total duration**: 800 ms (fixed)
+* **Probe duration**: 50 ms
+* **SOA (Stimulus Onset Asynchrony)**: 4 s
+* **Adapter → Probe Offset**: 1 s
+
+## Trigger Identifiers
+
+* `PARA_0021A2_L_L600`: L adapter → L probe (600 µs)
+* `PARA_0021A2_L_L200`: L adapter → L probe (200 µs)
+* `PARA_0021A2_L_C`:     L adapter → Center probe
+* `PARA_0021A2_L_R200`: L adapter → R probe (200 µs)
+* `PARA_0021A2_L_R600`: L adapter → R probe (600 µs)
+* `PARA_0021A2_R_L600`: R adapter → L probe (600 µs)
+* `PARA_0021A2_R_L200`: R adapter → L probe (200 µs)
+* `PARA_0021A2_R_C`:     R adapter → Center probe
+* `PARA_0021A2_R_R200`: R adapter → R probe (200 µs)
+* `PARA_0021A2_R_R600`: R adapter → R probe (600 µs)
+* `PARA_0021A2_C_C`:     Center adapter → Center probe
+
+## Functional Interface
+
+* `para_0021a2_init`: Initializes all timing constants
+* `para_0021a2_start` / `stop` / `pause` / `resume`: Control functions for experiment lifecycle
+* `para_0021a2`: Real-time control loop handling pattern parsing, timing logic, DAC triggering
+
+## Stimulation Logic
+
+* Regions (adapter/probe) determined by current `counter0` value
+* Lateralization and temporal windows derived from deltas (200/600 µs)
+* DACs toggled with sub-millisecond accuracy based on timing phase and lead/lag conditions
+
+## Use Case
+
+This version is designed for experiments where absolute timing consistency is critical. It is ideal for comparative testing across multiple sessions or subjects with minimum variability.
+
+## License
+
+GNU General Public License v3 or later. Copyright (C) 2007–2025 Barkin Ilhan.
+
+    */
 
 #define PARA_0021A2_CONT_ADAPT
 
