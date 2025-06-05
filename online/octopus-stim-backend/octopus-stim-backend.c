@@ -53,7 +53,128 @@ Octopus-ReEL - Realtime Encephalography Laboratory Network
    port code.
 
    The most important thing being worked on is some "generalization" of
-   original new stimulus paradigm. */
+   original new stimulus paradigm. 
+   
+Octopus Stim Backend - Technical Documentation
+==============================================
+
+This document describes the functionality, structure, and logic of the
+`octopus_stim_backend_annotated.c` kernel module. It is part of the
+Octopus-ReEL Real-Time Encephalography Laboratory system, designed to deliver
+precise bilateral auditory stimuli and synchronized digital trigger signals
+using RTAI and COMEDI in a Linux kernel space environment.
+
+Overview
+--------
+
+- **Architecture**: Real-time kernel module running under RTAI (Real-Time Application Interface)
+- **Purpose**: Deliver dynamic binaural audio stimulus and digital triggers to a connected acquisition system (ACQ)
+- **Hardware Used**: National Instruments DAQ cards (e.g., PCI-6711 or DAQCard 6036E), parallel port, serial port, COMEDI interface
+
+Core Components
+---------------
+
+- **Shared Memory (SHM)**:
+  - `xfer_shm`: Temporary transfer buffer for receiving stimulus data
+  - `patt_buf`: Final pattern buffer used by real-time audio loop
+
+- **Real-time Threads**:
+  - `audio_task`: Periodically synthesizes audio samples using a selected paradigm and sends them via DAC
+  - `trigger_task`: Sends out bit-encoded digital triggers to external systems, synchronized with the stimuli
+
+- **Synchronization & Messaging**:
+  - Uses RTAI semaphores and FIFO queues for inter-process communication between user-space and kernel-space
+
+Function-by-Function Breakdown
+------------------------------
+
+trigger_set(int t_code)
+~~~~~~~~~~~~~~~~~~~~~~~
+Encodes a stimulus trigger code into a 10-bit format for bit-wise transmission
+via COMEDI or parallel port. The encoded bits are later shifted out by the
+`trigger_task` in subsequent cycles.
+
+trigger_reset(void)
+~~~~~~~~~~~~~~~~~~~
+Sets all digital trigger outputs to a safe state. For COMEDI, this means
+driving all outputs HIGH. For legacy parallel port mode, it writes zero.
+
+lights_on(), lights_off(), lights_dimm()
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Control light indicators through COMEDI digital outputs. Used for visual feedback
+or experimental synchronization.
+
+audio_thread(int t)
+~~~~~~~~~~~~~~~~~~~
+Main audio loop, executed periodically. Based on the selected paradigm, it
+generates one audio sample per tick and sends the output to left and right DAC
+channels using COMEDI.
+
+trigger_thread(int t)
+~~~~~~~~~~~~~~~~~~~~~
+Bit-shifts the current `trigger_code` out to the trigger output pin. Implements
+serial transmission of a digital trigger signal across 10 bits.
+
+stim_reset(void)
+~~~~~~~~~~~~~~~~
+Clears DAC outputs, resets pattern pointer, and sets hardware state to baseline.
+Useful between paradigm runs to ensure a clean initial state.
+
+init_test_para(int tp)
+~~~~~~~~~~~~~~~~~~~~~~
+Initializes a specific audio stimulus paradigm. Loads configuration and
+prepares necessary buffers or parameters.
+
+start_test_para(int tp)
+~~~~~~~~~~~~~~~~~~~~~~~
+Starts any timing or control logic associated with a stimulus paradigm, if defined.
+
+stop_test_para(int tp)
+~~~~~~~~~~~~~~~~~~~~~~
+Stops a stimulus paradigm and performs any cleanup logic.
+
+pause_test_para(int tp), resume_test_para(int tp)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Pause and resume real-time execution for paradigms that support intermediate
+interruptions.
+
+fbfifohandler(unsigned int fifo, int rw)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Main command dispatcher invoked when user-space writes to the STIM_F2BFIFO:
+
+Supported commands include:
+
+- **STIM_SET_PARADIGM**: Select paradigm and reset system
+- **STIM_LOAD_PATTERN** / **STIM_XFER_SYN**: Transfer stimulus data
+- **STIM_START** / **STOP** / **PAUSE** / **RESUME**: Runtime control
+- **TRIG_START** / **TRIG_STOP**: Enable or disable trigger loop
+- **STIM_LIGHTS_ON**, **DIMM**, **OFF**: Light signal management
+- **STIM_RST_SYN**: Resets the system and acknowledges user-space
+- **STIM_SYNTH_EVENT**: Injects a manual trigger event
+
+octopus_stim_init(void)
+~~~~~~~~~~~~~~~~~~~~~~~~
+Initialization logic executed when the kernel module is loaded:
+
+- COMEDI devices are opened and configured
+- Memory regions and FIFOs are allocated
+- Real-time audio and trigger tasks are started
+
+octopus_stim_exit(void)
+~~~~~~~~~~~~~~~~~~~~~~~~
+Cleanup logic executed when the kernel module is unloaded:
+
+- Real-time tasks are terminated
+- FIFOs and memory buffers are deallocated
+- COMEDI devices are released
+
+Author and Licensing
+--------------------
+
+- Author: Barkin Ilhan <barkin@unrlabs.org>
+- GitHub: https://github.com/4e0n/
+- License: GNU General Public License v3.0
+   */
 
 #define OCTOPUS_STIM_COMEDI
 #define OCTOPUS_STIM_TRIG_COMEDI
